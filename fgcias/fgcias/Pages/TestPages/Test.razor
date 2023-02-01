@@ -1,0 +1,82 @@
+@page "/test"
+
+@inject IGlobalService globalService
+
+<div class='page-cont'>
+    <h1>Test page 1</h1>
+    <MudContainer Fixed='false' MaxWidth='MaxWidth.Small'>
+    <MudPaper Class='d-flex pa-2' Elevation=0 Width='100%'>
+        <BlazoredTypeahead SearchMethod='@SearchEmployee' @bind-Value='employee' Context="employeeContext" DisableClear placeholder='Search Employee'>
+            <SelectedTemplate>
+                @if (!string.IsNullOrWhiteSpace(employeeContext.EmployeeName))
+                {
+                    <MudText>@employeeContext.EmployeeName</MudText>
+                }
+                else
+                {
+                    <MudText>Search</MudText>
+                }
+            </SelectedTemplate>
+            <ResultTemplate>
+                <MudText>@employeeContext.EmployeeName</MudText>
+            </ResultTemplate>
+        </BlazoredTypeahead>
+    </MudPaper>
+    <MudTable Items='employeeList' Hover Breakpoint="Breakpoint.Sm" CustomFooter>
+        <ColGroup>
+            <col />
+            <col />
+        </ColGroup>
+        <HeaderContent>
+            <MudTh>Id</MudTh>
+            <MudTh>Employee</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Id">@context.EmployeeId</MudTd>
+            <MudTd DataLabel="Employee">@context.EmployeeName</MudTd>
+        </RowTemplate>
+        <FooterContent>
+            <MudTFootRow>
+                <td colspan="2">
+                    <div class='d-flex justify-end gap-2'>
+                        @if (employeeList.Count() > 0)
+                        {
+                            <MudIconButton OnClick="RemoveEmployee" Icon="@Icons.Filled.Remove" Size="Size.Medium" Color="Color.Error" />
+                        }
+                        <MudIconButton OnClick="AddEmployee" Icon="@Icons.Filled.Add" Size="Size.Medium" Color="Color.Primary" />
+                    </div>
+                </td>
+            </MudTFootRow>
+        </FooterContent>
+    </MudTable>
+    </MudContainer>
+</div>
+
+
+@code {
+    private EmployeeModel employee = new EmployeeModel();
+    private List<EmployeeModel> employeeList = new List<EmployeeModel>();
+    
+    private async Task<IEnumerable<EmployeeModel>> SearchEmployee(string employeeName)
+    {
+        var filterParameter = new FilterParameter()
+        {
+            IsName = true,
+            Name = employeeName,
+            IsLookup = true
+        };
+        var listemployee = await globalService.GetEmployees(filterParameter, GlobalClass.token);
+        return await Task.FromResult(listemployee.Where(x=>x.EmployeeName.ToLower().Contains(employeeName.ToLower())).ToList());
+    }
+
+    private void AddEmployee()
+    {
+        employeeList.Add(employee);
+    }
+
+    private void RemoveEmployee()
+    {
+        employeeList.RemoveAt(employeeList.Count - 1);
+    }
+
+}

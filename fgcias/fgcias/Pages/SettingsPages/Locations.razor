@@ -1,0 +1,193 @@
+@page "/settings/locations"
+
+@using fgcias.service.LocationServices
+@using fgcias.domain.clsLocation
+@inject HttpClient HttpClient
+@inject IDialogService DialogService
+@inject ILocationService locationService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+
+<MudPaper Class="locations" Elevation="0" style="margin: 3%; ">
+  
+<h1>Locations</h1>
+    
+    <MudPaper style="padding-top:3vh">
+
+       @if(isDataFetch)
+        {
+          <MudTable Items="locationList" FixedHeader="true" FixedFooter="true" Dense="true" Height="60vh" Filter="new Func<LocationModel,bool>(FilterSearch)">
+            <ColGroup>
+                <col style="width: 50%;" />
+                <col style="width: 40%;" />
+            </ColGroup>
+            <ToolBarContent>
+              <MudPaper CLass="d-flex" Width="30%" Elevation="0">
+                  <MudTextField @bind-Value="SearchLocation" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+
+                  <MudPaper Class="d-flex" Elevation="0" style="position: absolute; right: 3%; padding-top:1%">
+                    
+                    <MudSwitch CheckedChanged="(async(bool state)=>{await LocationChange(state); state = !state; locationStatus = !state;})" Checked="locationStatus" Color="@color" Label="Status"></MudSwitch>
+                    
+                    <MudMenu StartIcon="@Icons.Filled.MoreVert" Label="More">
+                        <MudMenuItem @onclick="@(() => AddLocation_Dialog())">
+                          <p style="display: flex;">
+                            <MudIcon Icon ="@Icons.Filled.AddCircleOutline"/>
+                            <MudText style="padding: 2px 0px 0px 4px; font-size 14px; text-align: center;">New Location</MudText>
+                          </p>
+                        </MudMenuItem>
+                    </MudMenu>
+                  </MudPaper>
+              </MudPaper>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Status</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">
+                  <MudText class='tableRowWithIcon'>
+                      <MudIcon Icon='@Icons.Material.Filled.LocationOn' Title='Location' />
+                      @context.Name
+                  </MudText></MudTd>
+                <MudTd DataLabel='IsActive'>
+                    <MudCheckBox @bind-Checked='@context.IsActive' Dense='true' ReadOnly='true' />
+                </MudTd>
+                <MudTd DataLabel='Actions'>
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Direction='Direction.End' Dense='true' Size='Size.Small'>
+                        <MudMenuItem @onclick="@(() => EditLocation_Dialog(context))">
+                            <p style='display: flex;'>
+                                <MudIcon Icon='@Icons.Material.Filled.Edit' />
+                                <MudText style='padding: 2px 0px 0px 4px; font-size: 14px; text-align: center;'>Edit Location</MudText>
+                            </p>
+                        </MudMenuItem>
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent> 
+          </MudTable> 
+        } 
+      
+    </MudPaper>
+
+</MudPaper>
+
+
+@code{
+    public bool locationStatus {get; set;} = true;
+  
+    public string SearchLocation { get; set; } = String.Empty;
+
+    public bool Statuslocation {get;set;} = true;
+
+    private List<LocationModel> locationList = new List<LocationModel>();
+
+    private LocationModel locationModel = new LocationModel();
+      
+    private bool isDataFetch;
+
+    private Color color {get;set;} = Color.Success;
+    
+    private bool FilterSearch(LocationModel locationSearch) => FilterSearch(locationSearch, SearchLocation);
+
+
+    
+
+    private bool FilterSearch(LocationModel locationSearch, string SearchLocation)
+    {
+        if (string.IsNullOrWhiteSpace(SearchLocation))
+            return true;
+        if (locationSearch.Name.Contains(SearchLocation, StringComparison.OrdinalIgnoreCase))
+            return true;
+        return false;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+      Task tasks = Task.WhenAll(GetLocationId());
+      await tasks;
+      if(tasks.Status == TaskStatus.RanToCompletion)
+          isDataFetch = true;
+
+      Task task = Task.WhenAll(GetLocations(true));
+      await task;
+      if(task.Status == TaskStatus.RanToCompletion)
+          isDataFetch = true;
+    }
+
+    public async Task GetLocations(bool state)
+    {
+        var parameter = new FilterParameter();
+        parameter.IsActive = state;
+        
+        locationList = await locationService.GetLocations(parameter, GlobalClass.token);
+    }
+
+    private async Task GetLocationId()
+    {
+        locationModel = await locationService.GetLocationById(1, GlobalClass.token);
+    }
+
+    private async Task LocationChange(bool state)
+    {
+      if(state)
+      {
+        color = Color.Success;
+      }
+
+      await GetLocations(state);
+      locationList.RemoveAll(x => x.IsActive == !state); //show active or inactive in table using switch
+      StateHasChanged();
+    }
+
+    private async Task AddLocation_Dialog()
+    {
+      var parameters = new DialogParameters();
+        parameters.Add("ContentText", "Add Location");
+        parameters.Add("ButtonText", "Submit");
+        parameters.Add("Color", Color.Success);
+
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+
+        var resultDialog = await DialogService.Show<Shared.Dialogs.SettingsDialog.LocationDialogs.AddLocationDialog>("Add Location", parameters, options).Result;
+
+        if(!resultDialog.Cancelled)
+        {
+          NavigationManager.NavigateTo($"/settings/locations");
+        }
+
+    }
+
+    private async Task EditLocation_Dialog(LocationModel currlocation)
+    {
+        var parameters = new DialogParameters { ["currlocation"] = currlocation };
+        parameters.Add("ContentText", "Edit Location");
+        parameters.Add("ButtonText", "Update");
+        parameters.Add("Color", Color.Success);
+
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.ExtraSmall, FullWidth = true };
+
+        var resultDialog = await DialogService.Show<Shared.Dialogs.SettingsDialog.LocationDialogs.AddLocationDialog>("Update Location", parameters, options).Result;
+
+        if(!resultDialog.Cancelled)
+        {
+          NavigationManager.NavigateTo($"/settings/locations");
+        }
+    }
+
+     MudTheme MyCustomTheme = new MudTheme()
+    {
+        Typography = new Typography()
+        {
+            Default = new Default()
+            {
+                FontFamily = new[] { "Poppins", "Helvetica", "Arial", "sans-serif" }
+            }
+        }
+    };
+     
+}

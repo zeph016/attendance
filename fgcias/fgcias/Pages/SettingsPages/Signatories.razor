@@ -1,0 +1,271 @@
+@page "/settings/signatories"
+
+@using System.Net.Http.Json
+@inject HttpClient httpClient
+@inject IGlobalService globalService
+@inject ISignatoryService signatoryService
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
+
+
+
+<MudPaper Class="signatory" Elevation="0" style="margin: 3%;" >
+  <h1>Signatories</h1>
+  <MudPaper Class="d-flex flex-column justify-center" Elevation="0" style="width:40%; margin:auto;">
+    <MudForm  @bind-IsValid="@success">
+        <MudItem xs="12" sm="8" md="12">
+            <MudAutocomplete T="DepartmentModel" Label="Department" Value="departmentModel" MaxItems="9999" ValueChanged="((DepartmentModel d)=>OnDepartmentSelected(d))"
+                SearchFunc="@Department" ToStringFunc="@(e=> e==null?null : $"{e.Name}")" ResetValueOnEmptyText="true" Required="true"/>
+        </MudItem>
+
+        <MudItem xs="12" sm="8" md="12">
+            <MudAutocomplete T="SectionModel" Label="Section" @bind-Value="sectionModel" MaxItems="9999" 
+                SearchFunc="@Section" ToStringFunc="@(e=> e==null?null : $"{e.Name}")" ResetValueOnEmptyText="true" Required="true"/>
+        </MudItem>
+
+        <MudPaper Class="d-flex justify-end" Elevation="0">
+          <MudButton Color="Color.Success" DisableElevation="true" Disabled="@(!success)" style="width:150px">Set Signatories</MudButton>
+        </MudPaper>
+    </MudForm>
+  </MudPaper>
+
+  <MudPaper Class="d-flex flex-column" Elevation="0">
+    <MudPaper Class="d-flex justify-center" Elevation="1" Height="350px" style="margin-top:40px">
+
+      <MudTable HeaderClass="table-head-bordered" Items ="onetwoday" Elevation="1" Breakpoint='Breakpoint.Xs' Context="Onetwoday" style="width:350px; height:350px;" 
+          Bordered Dense Hover CustomFooter>
+          <ColGroup>
+              <col style="width:40px" />
+              <col />
+              <col />
+          </ColGroup>
+          <HeaderContent>
+              <MudTh>1-2 Day Priority</MudTh>
+          </HeaderContent>
+          <RowTemplate>
+              <MudTd>
+                  <BlazoredTypeahead SearchMethod='@SearchEmployee' @bind-Value='@Onetwoday.Name' DisableClear='false' Context="employeeContext">
+                    <SelectedTemplate>
+                        @employeeContext
+                    </SelectedTemplate>
+                    <ResultTemplate>
+                      @employeeContext
+                    </ResultTemplate>
+                  </BlazoredTypeahead>
+              </MudTd>
+          </RowTemplate>
+          <FooterContent>
+              <MudTFootRow>
+                  <td colspan="3">
+                      <div class='d-flex justify-end gap-2'>
+                          @if (onetwoday.Count() > 1)
+                          {
+                              <MudIconButton OnClick="OneToTwoDayRemove" Icon="@Icons.Filled.Remove" Size="Size.Medium" Color="Color.Error" />
+                          }
+                          <MudIconButton OnClick="OneToTwoDayAdd" Icon="@Icons.Filled.Add" Size="Size.Medium" Color="Color.Primary" />
+                      </div>
+                  </td>
+              </MudTFootRow>
+          </FooterContent>
+      </MudTable>
+
+      <MudTable HeaderClass="table-head-bordered" Items ="threeday" Elevation="1" Breakpoint='Breakpoint.Xs' style="width:350px; height:350px;" 
+          Bordered Dense Hover CustomFooter>
+          <ColGroup>
+              <col style="width:40px" />
+              <col />
+              <col />
+          </ColGroup>
+          <HeaderContent>
+              <MudTh>3+ Day Priority</MudTh>
+          </HeaderContent>
+          <RowTemplate>
+              <MudTd>
+                  <BlazoredTypeahead SearchMethod='@SearchEmployee' @bind-Value='@context' DisableClear Context="employeeContext" placeholder="Employee">
+                    <SelectedTemplate>
+                      @if(string.IsNullOrEmpty(employeeContext.EmployeeName))
+                      {
+                          <MudText>-</MudText>
+                      }
+                      else
+                      {
+                        <MudText>@employeeContext.EmployeeName</MudText>
+                      }
+                    </SelectedTemplate>
+                    <ResultTemplate>
+                      @employeeContext.EmployeeName
+                    </ResultTemplate>
+                  </BlazoredTypeahead>
+              </MudTd>
+          </RowTemplate>
+          <FooterContent>
+              <MudTFootRow>
+                  <td colspan="3">
+                      <div class='d-flex justify-end gap-2'>
+                          @if (threeday.Count() > 1)
+                          {
+                              <MudIconButton OnClick="ThreeDayRemove" Icon="@Icons.Filled.Remove" Size="Size.Medium" Color="Color.Error" />
+                          }
+                          <MudIconButton OnClick="ThreeDayAdd" Icon="@Icons.Filled.Add" Size="Size.Medium" Color="Color.Primary" />
+                      </div>
+                  </td>
+              </MudTFootRow>
+          </FooterContent>
+      </MudTable>
+
+      <MudTable HeaderClass="table-head-bordered" Items ="overtime" Elevation="1" Breakpoint='Breakpoint.Xs' style="width:350px; height:350px;" 
+          Bordered Dense Hover CustomFooter>
+          <ColGroup>
+              <col style="width:40px" />
+              <col />
+              <col />
+          </ColGroup>
+          <HeaderContent>
+              <MudTh>Overtime Priority</MudTh>
+          </HeaderContent>
+          <RowTemplate>
+              <MudTd>
+                <BlazoredTypeahead SearchMethod='@SearchEmployee' @bind-Value='@context' Context="employeeContext" DisableClear>
+                    <SelectedTemplate>
+                        @employeeContext.EmployeeName
+                    </SelectedTemplate>
+                    <ResultTemplate>
+                        @employeeContext.EmployeeName
+                    </ResultTemplate>
+                </BlazoredTypeahead>
+              </MudTd>`
+          </RowTemplate>
+          <FooterContent>
+              <MudTFootRow>
+                  <td colspan="3">
+                      <div class='d-flex justify-end gap-2'>
+                          @if (overtime.Count() > 0)
+                          {
+                              <MudIconButton OnClick="OvertimeRemove" Icon="@Icons.Filled.Remove" Size="Size.Medium" Color="Color.Error" />
+                          }
+                          <MudIconButton OnClick="OvertimeAdd" Icon="@Icons.Filled.Add" Size="Size.Medium" Color="Color.Primary" />
+                      </div>
+                  </td>
+              </MudTFootRow>
+          </FooterContent>
+      </MudTable>
+    </MudPaper>
+      <MudPaper Class="d-flex justify-center" Elevation="0">
+        <MudButton>Cancel</MudButton>
+        <MudButton OnClick="Submit" Color="Color.Success" Variant="Variant.Filled">Submit</MudButton>
+      </MudPaper>
+  </MudPaper>
+
+</MudPaper>
+
+
+@code{
+  [Parameter] public string btnSubmitLabel {get;set;}
+    private string employeeName;
+    private bool isDataFetch, isBranchError, isBranchReadOnly, isBtnDisabled;
+    private bool success, checkAll, notValid;
+    private DepartmentModel departmentModel;
+    private SectionModel sectionModel;
+    private SignatoryModel signatoryModel;
+    private EmployeeModel employeeModel = new EmployeeModel();
+    private List<EmployeeModel> employeeList = new List<EmployeeModel>();
+    private List<EmployeeModel> onetwoday = new List<EmployeeModel>();
+    private List<EmployeeModel> threeday = new List<EmployeeModel>();
+    private List<EmployeeModel> overtime = new List<EmployeeModel>();
+    FilterParameter filterParameter = new FilterParameter();
+    HttpResponseMessage message = new HttpResponseMessage();
+
+
+
+    private async Task<IEnumerable<DepartmentModel>> Department(string value)
+    {
+        return await httpClient.GetFromJsonAsync<List<DepartmentModel>>($"/masterlist/employees/departments/");
+    }
+    
+    private async Task<IEnumerable<SectionModel>> Section(string value)
+    {
+        return await Task.Run(()=>GlobalClassList.globalSectionList);
+    }
+
+    private async Task<IEnumerable<EmployeeModel>> SearchEmployee(string employeeName)
+    {
+        var filterParameter = new FilterParameter()
+        {
+            IsName = true,
+            Name = employeeName,
+            IsLookup = true
+        };
+        var listemployee = await globalService.GetEmployees(filterParameter, GlobalClass.token);
+        return listemployee;
+    }
+
+    private async Task OneToTwoDayAdd()
+    {
+        await Task.Run(() => onetwoday.Add(new EmployeeModel())); 
+    }
+    private async Task OneToTwoDayRemove()
+    {
+      await Task.Run(() => onetwoday.RemoveAt(onetwoday.Count - 1)); 
+    }
+    private async Task ThreeDayAdd()
+    {
+        await Task.Run(() => threeday.Add(new EmployeeModel())); 
+    }
+    private async Task ThreeDayRemove()
+    {
+      await Task.Run(() => threeday.RemoveAt(threeday.Count - 1));
+    }
+    private async Task OvertimeAdd()
+    {
+      await Task.Run(() => overtime.Add(new EmployeeModel())); 
+    }
+
+    private async Task OvertimeRemove()
+    {
+      await Task.Run(() => overtime.RemoveAt(overtime.Count - 1));
+    }
+    
+    private async Task OnDepartmentSelected(DepartmentModel d)
+    {
+      departmentModel = d;
+      
+      GlobalClassList.globalSectionList = await httpClient.GetFromJsonAsync<List<SectionModel>>($"/masterlist/sections/");
+      GlobalClassList.globalSectionList.RemoveAll(section => section.DepartmentId != d.Id);
+      
+    }
+
+    private void MapProperties()
+    {
+      signatoryModel.SectionId = sectionModel.Id;
+    }
+
+
+    async void Submit()
+    {
+      if(employeeModel.EmployeeId == 0 && ValidateEntries())
+      {
+        MapProperties();
+        
+        Console.WriteLine(departmentModel.Name);
+        Console.WriteLine(sectionModel.Name);
+        Console.WriteLine(employeeModel.Name);
+      }
+      else{
+        Console.WriteLine("Failed");
+      }
+    }
+
+    private bool ValidateEntries()
+    {
+
+      if(string.IsNullOrEmpty(employeeModel.Name) && string.IsNullOrEmpty(departmentModel.Name) && string.IsNullOrEmpty(sectionModel.Name))
+        return false;
+      if(employeeModel.Name == null && departmentModel.Name == null && sectionModel.Name == null)
+        return false;
+      return true;
+
+    }
+    
+}

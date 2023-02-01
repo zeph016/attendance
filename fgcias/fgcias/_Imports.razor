@@ -1,0 +1,41 @@
+﻿@using System.Net.Http
+@using System.Net.Http.Json
+@using System.Globalization
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Components.Routing
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.AspNetCore.Components.Web.Virtualization
+@using Microsoft.AspNetCore.Components.WebAssembly.Http
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.JSInterop
+@using Blazored.Typeahead
+@using MudBlazor
+@using Blazored.LocalStorage
+@using fgcias
+@using fgcias.Shared
+@using fgcias.Common
+
+@using fgcias.Pages.SettingsPages
+@using fgcias.Pages.SchedulePages
+@using fgcias.Shared.Dialogs.SettingsDialog.HolidayDialogs
+
+@using fgcias.domain
+@using fgcias.domain.clsEnums
+@using fgcias.domain.clsLocation
+@using fgcias.domain.clsUserAccount
+@using fgcias.domain.clsHoliday
+@using fgcias.domain.clsAuditTrail
+@using fgcias.domain.clsFilterParameter
+@using fgcias.domain.clsSchedule
+@using fgcias.domain.clsLeaveTypes
+@using fgcias.domain.clsSignatories
+
+@using fgcias.service
+@using fgcias.service.LocationServices
+@using fgcias.service.UserAccountServices
+@using fgcias.service.HolidayServices
+@using fgcias.service.ScheduleServices
+@using fgcias.service.LeaveTypeServices
+@using fgcias.service.SignatoriesServices
+@using fgcias.service.GlobalServices

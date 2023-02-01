@@ -1,0 +1,42 @@
+﻿@inject NavigationManager navigationManager
+@using Microsoft.Extensions.Configuration
+@inject IConfiguration Configuration
+
+<PreLoader>
+    <CascadingAuthenticationState>
+        <Router AppAssembly="@typeof(App).Assembly">
+            <Found Context="routeData">
+                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                    <Authorizing>
+                        <div class="fgloader-1">
+                            <img class="fgloader-1__img" src="images/loaders/fgloader-1.gif" />
+                        </div>
+                    </Authorizing>
+                    <NotAuthorized>
+                        <MudContainer Class='errorpage d-flex align-center justify-center' Fixed='false' MaxWidth='MaxWidth.Large'>
+                            <img class='errorpage__img' src="images/pageforbidden403.png" asp-append-version="true" />
+                        </MudContainer>
+                    </NotAuthorized>
+                </AuthorizeRouteView>
+                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+            </Found>
+            <NotFound>
+                <PageTitle>Not found</PageTitle>
+                <LayoutView Layout="@typeof(MainLayout)">
+                     <MudContainer Fixed='true' MaxWidth='MaxWidth.Small'>
+                        <img src="images/pagenotfound404.png" asp-append-version="true" />
+                        <MudButton OnClick='BackToDashboard' Variant='Variant.Filled'>Back to Dashboard</MudButton>
+                    </MudContainer>
+                </LayoutView>
+            </NotFound>
+        </Router>
+    </CascadingAuthenticationState>
+</PreLoader>
+
+
+@code {
+    private void BackToDashboard()
+    { 
+        navigationManager.NavigateTo($"/dashboard");
+    }
+}

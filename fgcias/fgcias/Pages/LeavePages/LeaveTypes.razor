@@ -1,0 +1,166 @@
+@page "/leaves/leave-types"
+
+@using fgcias.service.LeaveTypeServices
+@using fgcias.domain.clsLeaveTypes
+@inject ILeaveTypeService leaveTypeService
+@inject NavigationManager NavigationManager
+@inject IDialogService DialogService
+
+
+
+<MudPaper Class="leavetype" Elevation="0" style="margin: 3%; ">
+  
+<h1>Leave Types</h1>
+    
+    <MudPaper style="padding-top:3vh">
+
+       @if(isDataFetch)
+        {
+          <MudTable Items="leaveTypeList" FixedHeader="true" FixedFooter="true" Dense="true" Height="60vh" Filter="new Func<LeaveTypesModel,bool>(FilterSearch)">
+            <ColGroup>
+                <col style="width: 15%;" />
+                <col style="width: 90%;" />
+            </ColGroup>
+            <ToolBarContent>
+              <MudPaper CLass="d-flex" Width="30%" Elevation="0">
+                  <MudTextField @bind-Value="SearchLeaveType" Placeholder="Search" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
+
+                  <MudPaper Class="d-flex" Elevation="0" style="position: absolute; right: 3%; padding-top:1%">
+                    
+                    <MudSwitch CheckedChanged="(async(bool state)=>{await LeaveTypeChange(state); state = !state; leaveTypeStatus = !state;})" Checked="leaveTypeStatus" Color="@color" Label="Status"></MudSwitch>
+                    
+                    <MudMenu StartIcon="@Icons.Filled.MoreVert" Label="More">
+                        <MudMenuItem @onclick="@(() => AddLeaveType_Dialog())">
+                          <p style="display: flex;">
+                            <MudIcon Icon ="@Icons.Outlined.AddComment"/>
+                            <MudText style="padding: 2px 0px 0px 4px; font-size 14px; text-align: center;">New Leave Type</MudText>
+                          </p>
+                        </MudMenuItem>
+                    </MudMenu>
+                    
+                  </MudPaper>
+              </MudPaper>
+            </ToolBarContent>
+            <HeaderContent>
+                <MudTh>Name</MudTh>
+                <MudTh>Description</MudTh>
+                <MudTh>Actions</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Name">
+                      <MudIcon Icon='@Icons.Filled.Assessment' Title='Leave Type' />
+                      @context.Name
+                </MudTd>
+                <MudTd DataLabel='Description'>
+                    <MudText>@context.Description</MudText>
+                </MudTd>
+                <MudTd DataLabel='Actions'>
+                    <MudMenu Icon="@Icons.Material.Filled.MoreVert" Direction='Direction.End' Dense='true' Size='Size.Small'>
+                        <MudMenuItem @onclick="@(() => EditLeaveType_Dialog(context))">
+                            <p style='display: flex;'>
+                                <MudIcon Icon='@Icons.Material.Filled.Edit' />
+                                <MudText style='padding: 2px 0px 0px 4px; font-size: 14px; text-align: center;'>Edit Leave Type</MudText>
+                            </p>
+                        </MudMenuItem>
+                    </MudMenu>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager />
+            </PagerContent> 
+          </MudTable> 
+        } 
+      
+    </MudPaper>
+
+</MudPaper>
+
+
+@code{
+  
+  private bool isDataFetch;
+
+  public bool leaveTypeStatus {get; set;} = true;
+
+  public string SearchLeaveType { get; set; } = String.Empty;
+
+  private Color color {get;set;} = Color.Success;
+
+  private List<LeaveTypesModel> leaveTypeList = new List<LeaveTypesModel>();
+
+  private bool FilterSearch(LeaveTypesModel leaveTypeSearch) => FilterSearch(leaveTypeSearch, SearchLeaveType);
+
+
+    
+
+  private bool FilterSearch(LeaveTypesModel leaveTypeSearch, string SearchLeaveType)
+  {
+      if (string.IsNullOrWhiteSpace(SearchLeaveType))
+          return true;
+      if (leaveTypeSearch.Name.Contains(SearchLeaveType, StringComparison.OrdinalIgnoreCase))
+          return true;
+      return false;
+  }
+
+  protected override async Task OnInitializedAsync()
+  {
+      Task tasks = Task.WhenAll(GetLeaveType(true));
+      await tasks;
+      if(tasks.Status == TaskStatus.RanToCompletion)
+          isDataFetch = true;
+  }
+
+  public async Task GetLeaveType (bool state)
+  {
+    var parameter = new FilterParameter();
+        parameter.IsActive = state;
+        
+        leaveTypeList = await leaveTypeService.GetLeaveType(parameter, GlobalClass.token);
+  }
+
+  private async Task LeaveTypeChange(bool state)
+  {
+    if(state)
+    {
+      color = Color.Success;
+    }
+    await GetLeaveType(state);
+    leaveTypeList.RemoveAll(x => x.IsActive == !state); //show active or inactive in table using switch
+    StateHasChanged();
+  }
+
+  private async Task AddLeaveType_Dialog()
+  {
+    var parameters = new DialogParameters();
+      parameters.Add("ContentText", "Leave Type Info");
+      parameters.Add("ButtonText", "Create Type");
+      parameters.Add("Color", Color.Success);
+
+      var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+    
+      var resultDialog = await DialogService.Show<Shared.Dialogs.LeaveDialogs.LeaveTypeDialog.AddLeaveTypeDialog>("Leave Type Info", parameters, options).Result;
+
+      if(!resultDialog.Cancelled)
+      {
+        NavigationManager.NavigateTo($"/leaves/leave-types");
+      }
+  }
+
+    private async Task EditLeaveType_Dialog(LeaveTypesModel currLeaveType)
+    {
+        var parameters = new DialogParameters { ["currLeaveType"] = currLeaveType };
+        parameters.Add("ContentText", "Leave Type Info");
+        parameters.Add("ButtonText", "Update Type");
+        parameters.Add("Color", Color.Success);
+
+        var options = new DialogOptions() { CloseButton = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var resultDialog = await DialogService.Show<Shared.Dialogs.LeaveDialogs.LeaveTypeDialog.AddLeaveTypeDialog>("Leave Type Info", parameters, options).Result;
+
+        if(!resultDialog.Cancelled)
+        {
+          NavigationManager.NavigateTo($"/leaves/leave-types");
+        }
+    }
+
+}

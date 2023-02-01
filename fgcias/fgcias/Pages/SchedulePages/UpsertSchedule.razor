@@ -1,0 +1,407 @@
+@page "/schedule/new"
+@page "/schedule/{schedId}"
+@inject ILocationService locationService;
+@inject IScheduleService scheduleService;
+@inject ISnackbar Snackbar;
+@inject NavigationManager NavigationManager;
+<div class="page-cont overflow-auto">
+        <MudContainer Fixed='false' MaxWidth='MaxWidth.Medium'>
+            @if(dataFetch)
+            {
+                <MudPaper Class="container d-flex flex-column" Elevation="0" >
+                    <div class="d-flex">
+                        <h1 class='ml-2'>New Schedule</h1>
+                    </div>
+                    <MudExpansionPanels DisableBorders Elevation="0">
+                        <MudExpansionPanel HideIcon Dense>
+                            <TitleContent>
+                                <div class="d-flex">
+                                    <div class="mr-2">
+                                        <MudAvatar Size="Size.Small" Color="Color.Primary">1</MudAvatar>
+                                    </div>
+                                    <MudText>Schedule Info</MudText>
+                                </div>
+                            </TitleContent>
+                            <ChildContent>
+                                    <MudGrid Class='ml-3 pa-2 border-left-thin' Spacing='2'>
+                                        <MudItem xs=6>
+                                            <MudTextField @bind-Value="@schedName" T="string" Label="Schedule Name" Required="true" RequiredError="This field cannot be empty"></MudTextField>
+                                        </MudItem>
+                                        <MudItem xs="6">
+                                            <MudSelect @bind-Value="@currentLocation" Label="Location" Dense AnchorOrigin="Origin.BottomCenter">
+                                                @foreach (var item in locations)
+                                                {
+                                                    <MudSelectItem Value="@item">@item.Name</MudSelectItem>
+                                                }
+                                            </MudSelect>
+                                        </MudItem>
+                                        <MudItem Class='d-flex align-center justify-end' xs=12>
+                                            <MudIconButton Icon='fa-solid fa-arrow-right' Size='Size.Small' Color='Color.Primary'/>
+                                        </MudItem>
+                                    </MudGrid>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                        <MudExpansionPanel HideIcon Dense>
+                            <TitleContent>
+                                <div class="d-flex">
+                                    <div class="mr-2">
+                                        <MudAvatar Size="Size.Small" Color="Color.Primary">2</MudAvatar>
+                                    </div>
+                                    <div>
+                                        <MudText>Daily Time Schedule</MudText>
+                                    </div>
+                                </div>
+                            </TitleContent>
+                            <ChildContent>
+                                <MudGrid Class='ml-3 pa-2 border-left-thin' Spacing="2">
+                                    <MudItem xs="12">
+                                        <div class="d-flex flex-column"></div>
+                                        <MudText Typo="Typo.body1">Morning</MudText>
+                                        <small>Daily time-in/time-out for AM.</small>
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudTimePicker @bind-Time="@timeInAm" Placeholder="08:00 AM" Label="Time-in" PickerVariant="PickerVariant.Dialog" AmPm Margin='Margin.Dense'/>
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudTimePicker @bind-Time="@timeOutAm" Label="Time-out" PickerVariant="PickerVariant.Dialog" AmPm="true" Margin='Margin.Dense' />
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudTextField T="string" Label="Offset Total Hours" Margin='Margin.Dense' />
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <div class="d-flex flex-column"></div>
+                                        <MudText Typo="Typo.body1">Afternoon</MudText>
+                                        <small>Daily time-in/time-out for PM.</small>
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudTimePicker @bind-Time="@timeInPm" Label="Time-in" PickerVariant="PickerVariant.Dialog" AmPm="true" Margin='Margin.Dense'/>
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudTimePicker @bind-Time="@timeOutPm" Label="Time-out" PickerVariant="PickerVariant.Dialog" AmPm="true" Margin='Margin.Dense'/>
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudTextField T="string" Label="Offset Total Hours" Margin='Margin.Dense'></MudTextField>
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <div class="d-flex flex-column">
+                                            <MudText Typo="Typo.body1">Rest Breaks</MudText>
+                                            <small>Set a time range for rest breaks.</small>
+                                        </div>
+                                    </MudItem>
+                                    <MudItem xs=12>
+                                        <MudTable HeaderClass="table-head-bordered" Items ="schedBreaks" Elevation="1" Breakpoint='Breakpoint.Xs' 
+                                            Bordered Dense Hover CustomFooter>
+                                            <ColGroup>
+                                                <col style="width:40px" />
+                                                <col />
+                                                <col />
+                                            </ColGroup>
+                                            <HeaderContent>
+                                                <MudTh Class='pa-2'>
+                                                    <MudCheckBox Class='pa-2' @bind-Checked="@checkAll" Size="Size.Small" Dense Color="Color.Primary" />
+                                                </MudTh>
+                                                <MudTh>Time Start</MudTh>
+                                                <MudTh>Time End</MudTh>
+                                            </HeaderContent>
+                                            <RowTemplate>
+                                                <MudTd Class='pa-2' DataLabel="Active">
+                                                    <MudCheckBox Class='px-2 mt-4' @bind-Checked="@context.isActive" Size="Size.Small" Dense Color="Color.Primary" />
+                                                </MudTd>
+                                                <MudTd DataLabel="Time Start">
+                                                    <MudTimePicker @bind-Time="@context.StartBreak" Label="Time Start" PickerVariant="PickerVariant.Dialog" AmPm="true" Margin='Margin.Dense' />
+                                                </MudTd>
+                                                <MudTd DataLabel="Time End">
+                                                    <MudTimePicker @bind-Time="@context.EndBreak" Label="Time End" PickerVariant="PickerVariant.Dialog" AmPm="true" Margin='Margin.Dense' />
+                                                </MudTd>
+                                            </RowTemplate>
+                                            <FooterContent>
+                                                <MudTFootRow>
+                                                    <td colspan="3">
+                                                        <div class='d-flex justify-end gap-2'>
+                                                            @if (schedBreaks.Count() > 0)
+                                                            {
+                                                                <MudIconButton OnClick="RemmoveBreaks" Icon="@Icons.Filled.Remove" Size="Size.Medium" Color="Color.Error" />
+                                                            }
+                                                            <MudIconButton OnClick="AddBreaks" Icon="@Icons.Filled.Add" Size="Size.Medium" Color="Color.Primary" />
+                                                        </div>
+                                                    </td>
+                                                </MudTFootRow>
+                                            </FooterContent>
+                                        </MudTable>
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <div class="d-flex flex-column">
+                                            <MudText Typo="Typo.body1">Overtime</MudText>
+                                            <small>Set schedule overtime.</small>
+                                        </div>
+                                    </MudItem>
+                                    <MudItem Class='d-flex align-center gap-2' xs="6">
+                                        <MudCheckBox Class='mt-5' @bind-Checked="@activeOvertimeAm" Size="Size.Small" Color="Color.Primary" Dense/>
+                                        <MudTimePicker @bind-Time="@overTimeAm" Label="Overtime(AM)" Disabled="@activeOvertimeAm" AmPm="true" PickerVariant="PickerVariant.Dialog" Margin='Margin.Dense' />
+                                    </MudItem>
+                                    <MudItem Class='d-flex align-center gap-2' xs="6">
+                                        <MudCheckBox Class='mt-5' @bind-Checked="@activeOvertimePm" Size="Size.Small" Color="Color.Primary" Dense/>
+                                        <MudTimePicker @bind-Time="@overtimePm" Label="Overtime (PM)" Disabled="activeOvertimePm" AmPm="true" PickerVariant="PickerVariant.Dialog" Margin='Margin.Dense' />
+                                    </MudItem>
+                                    <MudItem xs="12">
+                                        <MudText Typo="Typo.body1">Others</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudTextField @bind-Value="@schedModel.GracePeriod" T="int" Label="Grace Period" HelperText="Provide a time, in minute(s)" Margin='Margin.Dense' />
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudSelect @bind-Value="@restDay" @bind-SelectedValues="@selectedRestDays" MultiSelection="true" MultiSelectionTextFunc="@(new Func<List<string>, string>(SelectedRestDays))" T="string" Label="Rest Days" AnchorOrigin='Origin.BottomCenter' Margin='Margin.Dense'>
+                                            @foreach (var day in daysOfTheWeek)
+                                            {
+                                                <MudSelectItem T="string" Value="@day">@day</MudSelectItem>
+                                            }
+                                        </MudSelect>
+                                    </MudItem>
+                                    <MudItem Class='d-flex align-center justify-end gap-2' xs=12>
+                                        <MudIconButton Icon='fa-solid fa-arrow-left' Size='Size.Small' Color='Color.Primary'/>
+                                        <MudIconButton Icon='fa-solid fa-arrow-right' Size='Size.Small' Color='Color.Primary' />
+                                    </MudItem>
+                                </MudGrid>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                        <MudExpansionPanel HideIcon Dense>
+                            <TitleContent>
+                                <div class="d-flex">
+                                    <div class="mr-2">
+                                        <MudAvatar Size="Size.Small" Color="Color.Primary">3</MudAvatar>
+                                    </div>
+                                    <div>
+                                        <MudText>Extra Properties</MudText>
+                                    </div>
+                                </div>
+                            </TitleContent>
+                            <ChildContent>
+                                <MudGrid Class='ml-3 pa-2 border-left-thin' Spacing="2">
+                                    <MudItem Class='d-flex align-center' xs="12">
+                                            <MudCheckBox @bind-Checked="@schedModel.HasOffsetSchedule" Size="Size.Small" Color="Color.Primary" Label='Offset Schedule' />
+                                            <MudCheckBox @bind-Checked="@schedModel.HasHalfRestDay" Size="Size.Small" Color="Color.Primary" Label='Half-day Rest' />
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudTimePicker @bind-Time="OffsetAm"  Label="Offset Time-in" PickerVariant="PickerVariant.Dialog" AmPm="true" />
+                                    </MudItem>
+                                    <MudItem xs="4">
+                                        <MudTimePicker @bind-Time="OffsetPm" Label="Offset Time-out" PickerVariant="PickerVariant.Dialog" AmPm="true" />
+                                    </MudItem>
+                                    <MudItem Class='d-flex align-center justify-end gap-2' xs=8>
+                                        <MudIconButton Icon='fa-solid fa-arrow-left' Size='Size.Small' Color='Color.Primary'/>
+                                        <MudIconButton Icon='fa-solid fa-arrow-right' Size='Size.Small' Color='Color.Primary' />
+                                    </MudItem>
+                                </MudGrid>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                        <MudExpansionPanel HideIcon Dense>
+                            <TitleContent>
+                                <div class="d-flex">
+                                    <div class="mr-2">
+                                        <MudAvatar Size="Size.Small" Color="Color.Primary">4</MudAvatar>
+                                    </div>
+                                    <div>
+                                        <MudText>Submit</MudText>
+                                    </div>
+                                </div>
+                            </TitleContent>
+                            <ChildContent>
+                                <div class="d-flex px-2">
+                                    <div class="mr-2">
+                                        <MudIcon Icon="@Icons.Filled.AssignmentTurnedIn" Color="Color.Primary" Size="Size.Medium"></MudIcon>
+                                    </div>
+                                    <div>
+                                        <MudText Typo="Typo.h6">Preview</MudText>
+                                    </div>
+                                    <div class="mr-2">
+                                        <MudGrid Class='ml-3 pa-2 border-left-thin' Spacing='2'>
+                                        <MudItem xs=6>
+                                            <MudTextField @bind-Value="@schedName" T="string" Label="Schedule Name" ReadOnly="true"></MudTextField>
+                                        </MudItem>
+                                        <MudItem xs="6">
+                                            <MudTextField @bind-Value="@currentLocation.Name" Label="Location" ReadOnly="true"></MudTextField>
+                                        </MudItem>
+                                        </MudGrid>
+                                    </div>
+                                </div>
+                                <div class="d-flex">
+                                    <MudButton Color="Color.Primary">Reset</MudButton>
+                                    <MudSpacer />
+                                    <MudButton OnClick="SubmitForm" Color="Color.Primary">Submit</MudButton>
+                                </div>
+                            </ChildContent>
+                        </MudExpansionPanel>
+                    </MudExpansionPanels>
+                </MudPaper>
+            }
+            else
+            {
+                <MudProgressCircular Color="Color.Default" Indeterminate="true" />
+            }
+        </MudContainer>
+</div>
+
+@code
+{
+    [Parameter] public int schedId { get; set; }
+    private bool checkAll, activeBreak, activeOvertimeAm, activeOvertimePm, activeOffset, activeHalfDay, dataFetch;
+    private bool enableOvertime = true;
+    private TimeSpan? timeInAm, timeOutAm, timeInPm, timeOutPm, OffsetAm, OffsetPm, overTimeAm, overtimePm;
+    private List<ScheduleBreakModel> schedBreaks = new List<ScheduleBreakModel>();
+    private IEnumerable<LocationModel> locations = new List<LocationModel>();
+    private string restDay { get; set; } = String.Empty;
+    private string schedName { get; set; } = String.Empty;
+    private IEnumerable<string> selectedRestDays { get; set; } = new HashSet<string>();
+    private ScheduleModel schedModel = new ScheduleModel();
+    private LocationModel currentLocation =  new LocationModel();
+    private string[] daysOfTheWeek = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+    protected override async Task OnInitializedAsync()
+    {
+         GlobalClass.pageTitle = "New Schedule";
+        Task task = Task.WhenAll(GetLocations());
+        await task;
+        if (task.Status == TaskStatus.RanToCompletion)
+            dataFetch = true;
+        var defaultLocation = locations.Where(x => x.Id == 1).FirstOrDefault();
+        if (defaultLocation != null)
+            currentLocation = defaultLocation;
+        DefaultValues();
+    }
+    
+    private async Task GetLocations()
+    {
+        var filterParameter = new FilterParameter();
+        filterParameter.IsActive = true;
+        var _locations = await locationService.GetLocations(filterParameter, GlobalClass.token);
+
+        locations = _locations;
+    }
+    private async Task GetSchedules()
+    {
+        var isActive = true;
+        var _schedList = await scheduleService.GetSchedules(isActive, GlobalClass.token);
+        GlobalClassList.globalScheduleList = _schedList;
+    }
+    
+    @* private async Task AddSchedule()
+    {
+        var _sched = await scheduleService.AddSchedule(schedModel, GlobalClass.token);
+    } *@
+
+    private async Task AddBreaks()
+    {
+        await Task.Run(() => schedBreaks.Add(new ScheduleBreakModel())); 
+    }
+    private async Task RemmoveBreaks()
+    {
+        await Task.Run(() => schedBreaks.RemoveAt(schedBreaks.Count - 1)); 
+    }
+    private string SelectedRestDays(List<string> selectedStatus)
+        {
+            var rd = "";
+            foreach (var item in selectedRestDays)
+            {
+                rd = string.Join(", ", selectedRestDays);
+            }
+            return $"{rd}";
+        }
+    private void EnableOvertime()
+    {
+        if(activeOvertimeAm == true)
+           enableOvertime = false;
+    }
+
+    async void SubmitForm()
+    {
+       if(schedModel.id == 0 && ValidateEntries())
+       { 
+            MapProperties();
+            
+            @* Console.WriteLine(schedModel.Name);
+
+            Console.WriteLine(currentLocation.Name + currentLocation.Id);
+
+            Console.WriteLine($"{schedModel.TimeInAm} + {schedModel.TimeOutAm} + {schedModel.TimeInPm} + {schedModel.TimeOutPm} ");
+            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(schedModel.ScheduleBreaks, Newtonsoft.Json.Formatting.Indented));
+            Console.WriteLine(schedModel.GracePeriod);
+            Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(schedModel.RestDay, Newtonsoft.Json.Formatting.Indented));
+            Console.WriteLine(schedModel.HasOffsetSchedule);
+            Console.WriteLine($"{schedModel.OvertimeAmStart} + {schedModel.OvertimePmStart}");
+            Console.WriteLine(schedModel.HasOvertimeAm);
+            Console.WriteLine(schedModel.HasHalfRestDay);
+            Console.WriteLine(schedModel.HasOffsetSchedule); *@
+            await scheduleService.AddSchedule(schedModel, GlobalClass.token);  
+         
+
+            
+       }
+       else
+       {
+            Console.WriteLine("Incomplete fields");
+       }
+
+    }
+
+    private void MapProperties()
+    {
+        schedModel.Name = $"{schedName}({currentLocation.Name})";   
+        schedModel.Location = Convert.ToInt32(currentLocation.Id); 
+        schedModel.RestDay = selectedRestDays.ToList();
+        schedModel.TimeInAm = ConvertToAmPm(timeInAm);
+        schedModel.TimeOutAm = ConvertToAmPm(timeOutAm);
+        schedModel.TimeInPm = ConvertToAmPm(timeInPm);
+        schedModel.TimeOutPm = ConvertToAmPm(timeOutPm);
+        schedModel.HasOvertimeAm = activeOvertimeAm;
+        schedModel.OvertimeAmStart = (overTimeAm == null ? string.Empty : ConvertToAmPm(overTimeAm));
+        schedModel.OvertimePmStart = ConvertToAmPm(overtimePm);
+        schedModel.OffsetTimeIn = (!schedModel.HasOffsetSchedule ? string.Empty : ConvertToAmPm(OffsetAm));
+        schedModel.OffsetTimeOut  = (!schedModel.HasOffsetSchedule ? string.Empty : ConvertToAmPm(OffsetPm));
+        schedModel.isActive = true; 
+
+        @* LocationModel locModel = new LocationModel();
+
+        locModel.Id = 1;
+        schedModel.LocationList.Add(locModel); *@
+
+
+        List<ScheduleBreakModel> scheduleBreakList = new List<ScheduleBreakModel>();
+
+        foreach (var schedBreakItems in schedBreaks)
+        {
+            
+            schedBreakItems.TimeStart = ConvertToAmPm(schedBreakItems.StartBreak);
+            schedBreakItems.TimeEnd = ConvertToAmPm(schedBreakItems.EndBreak);
+            scheduleBreakList.Add(schedBreakItems);
+        }
+
+        schedModel.ScheduleBreaks = scheduleBreakList;
+    }
+    
+    private bool ValidateEntries() 
+    {
+        if (string.IsNullOrEmpty(schedModel.Name) && string.IsNullOrEmpty(currentLocation.Name))
+            return false;
+        if (schedModel.TimeInAm == null && schedModel.TimeOutAm == null && schedModel.TimeInPm == null && schedModel.TimeOutPm == null && schedModel.ScheduleBreaks == null && schedModel.OvertimePmStart == null && schedModel.RestDay == null)
+            return false;
+        return true;
+        
+    }
+
+    private string ConvertToAmPm(TimeSpan? timeSpan)
+    {
+        
+        TimeSpan ts = timeSpan.Value;
+        DateTime dt = DateTime.Today.Add(ts);
+        string timeString = dt.ToString("hh:mm tt");
+        return timeString;
+    }
+    private void DefaultValues()
+    {
+        timeInAm = new TimeSpan(08, 00, 00);
+        overtimePm = new TimeSpan(18, 00, 00);
+    }
+}
+
+
+
+

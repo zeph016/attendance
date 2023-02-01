@@ -1,0 +1,177 @@
+@page "/settings/holidays"
+@inject IHolidayService holidayService
+@inject ILocationService locationService
+@inject IDialogService dialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<MudPaper Class="container d-flex flex-column" Elevation="0">
+    <div class="d-flex margin-left-config align-baseline">
+        <h1>Holidays</h1>
+    </div>
+    <div class="d-flex margin-left-config align-baseline align-start my-2">
+        <div class="px-6 pr-4">
+            <MudTextField Class="mr-4" @bind-Value="SearchHoliday" Variant="Variant.Text" Placeholder="Find Holiday" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" />
+        </div>
+        <MudSpacer />
+        <div class="holiday-toolbar d-flex pr-11 mx-5 position-absolute">
+            <MudButton OnClick="FilterHoliday" Variant="Variant.Filled" DisableElevation="true">
+                <MudIcon Icon="@Icons.Filled.Tune" />
+                Filter
+            </MudButton>
+            <MudMenu StartIcon="@Icons.Filled.MoreVert" Label="More" AnchorOrigin="Origin.BottomRight">
+                <MudMenuItem @onclick="@(() => AddHoliday())">
+                    <div class="d-flex">
+                        <MudIcon Icon="@Icons.Filled.AddCircle" />
+                        <MudText Class="ml-2" Typo="Typo.body1">Add Holiday</MudText>
+                    </div>
+                </MudMenuItem>
+            </MudMenu>
+        </div>
+    </div> 
+
+    <div class="txt-center my-2">
+        <small>Showing holidays for the year @GlobalClass.currentYear.ToString()</small>
+    </div>
+    <div>
+        @if(dataFetch)
+        {
+            <MudTable Class="margin-left-config" Items="GlobalClassList.globalHolidayList" Elevation="0" FixedHeader="true" FixedFooter="true" Dense="true" Height="360px" Filter="new Func<HolidayModel,bool>(FilterHoliday)">
+                <HeaderContent>
+                    <MudTh>Date</MudTh>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Location</MudTh>
+                    <MudTh>Holiday Type</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+@*                    <MudTd DataLabel="No">@GetRowNumber(context)</MudTd>*@
+                    <MudTd DataLabel="Date">@context.SelectedDate?.ToString("MM/dd/yyyy")</MudTd>
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Location">@context.LocationNames</MudTd>
+                    <MudTd DataLabel="Holiday Type">@context.Type</MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudMenu Icon="@Icons.Filled.MoreVert" Direction="Direction.End" Dense="true">
+                             <MudMenuItem @onclick="@(() => EditHoliday(context))">
+                                <div class="d-flex">
+                                    <MudIcon Icon="@Icons.Filled.Edit" />
+                                    <MudText Class="ml-2" Typo="Typo.body1">Edit Holiday</MudText>
+                                 </div>
+                              </MudMenuItem>
+                        </MudMenu>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>No matching records found</MudText>
+                </NoRecordsContent>
+                <LoadingContent>
+                    <MudText>Loading...</MudText>
+                </LoadingContent>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent> 
+            </MudTable> 
+        } 
+    </div>
+</MudPaper>
+
+
+@code{
+    private List<LocationModel> locationList = new List<LocationModel>();
+    public string SearchHoliday { get; set; } = String.Empty;
+    private bool dataFetch;
+    # region search holiday by name
+    private bool FilterHoliday(HolidayModel _holidaySearch) => FilterSearch(_holidaySearch, SearchHoliday);
+    private bool FilterSearch(HolidayModel _holidaySearch, string _searchHoliday)
+    {
+        if(string.IsNullOrWhiteSpace(_searchHoliday))
+            return true;
+        if(_holidaySearch.Name.Contains(_searchHoliday, StringComparison.CurrentCultureIgnoreCase))
+            return true;
+        if(_holidaySearch.LocationNames.Contains(_searchHoliday, StringComparison.CurrentCultureIgnoreCase))
+            return true;
+        @* if(${_holiday.SelectedDate}.Contains(holidayValue))
+            return true; *@
+        return false;
+    }
+    #endregion
+    protected override async Task OnInitializedAsync()
+    {
+        Task task = Task.WhenAll(GetLocations());
+        await task;
+        if(task.Status == TaskStatus.RanToCompletion)
+        {
+            await GetHolidays();
+            dataFetch = true;
+        }
+    }
+    
+    private async Task GetLocations()
+    {
+        var filterParameter = new FilterParameter();
+        filterParameter.IsActive = true;
+        var _locationList = await locationService.GetLocations(filterParameter, GlobalClass.token);
+        locationList = _locationList;
+    }
+    private async Task GetHolidays()
+    {
+        var _holidayList = await holidayService.GetHolidays(GlobalClass.currentYear, GlobalClass.token);
+        foreach (var holidayItem in _holidayList)
+        {
+            foreach (var holidayLocation in holidayItem.Locations)
+            {   
+                var _location = locationList.Where( x => x.Id == holidayLocation).FirstOrDefault();
+                holidayItem.ListofLocations.Add( _location ?? new LocationModel() );
+                
+            }
+            holidayItem.LocationNames = string.Join(", ", holidayItem.ListofLocations.Select(x => x.Name)); // ListofLocation == LocationModel
+        }
+        GlobalClassList.globalHolidayList = _holidayList;
+    }
+
+    private async Task AddHoliday()
+    {
+        var parameters = new DialogParameters();
+        parameters.Add("ContentText", "Add Holiday");
+        parameters.Add("ButtonText", "Submit");
+        parameters.Add("Color", Color.Success);
+
+       var options = new DialogOptions() { CloseOnEscapeKey = true };
+
+       var resultDialog = await dialogService.Show<Shared.Dialogs.SettingsDialog.HolidayDialogs.UpsertHolidayDialog>("Holiday Info", parameters, options).Result;
+
+        if(!resultDialog.Cancelled)
+        {
+            await GetHolidays();
+            NavigationManager.NavigateTo($"/settings/holidays");
+          
+        }
+    }
+    private async Task EditHoliday(HolidayModel currentHoliday)
+    {
+        var parameters = new DialogParameters{ ["currentHoliday"] = currentHoliday};
+        parameters.Add("ContentText", "Edit Holiday");
+        parameters.Add("ButtonText", "Update");
+        parameters.Add("Color", Color.Success);
+
+        var options = new DialogOptions { CloseOnEscapeKey = true };
+
+        var resultDialog = await dialogService.Show<Shared.Dialogs.SettingsDialog.HolidayDialogs.UpsertHolidayDialog>("Holiday Info", parameters, options).Result;
+        
+        if(!resultDialog.Cancelled)
+        {
+            await GetHolidays();
+            NavigationManager.NavigateTo($"/settings/holidays");   
+        }
+    }
+
+    private async Task FilterHoliday()
+    {
+        //filter holiday by year
+
+        var resultDialog = await dialogService.Show<Shared.Dialogs.SettingsDialog.HolidayDialogs.FilterHoliday>("Filter Holiday").Result;
+    } 
+}
+
+
+

@@ -1,0 +1,77 @@
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject ILocationService locationService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+
+<MudDialog>
+    <TitleContent>
+      <MudIcon Icon="@Icons.Material.Filled.CorporateFare" Size='Size.Large'/>
+      <MudText Typo='Typo.h6'>
+          @ContentText
+      </MudText>
+    </TitleContent>
+    <DialogContent>
+      <MudForm >
+        <MudGrid>
+            <MudItem xs='10'>
+                <MudTextField Error='notValid' Required='true' RequiredError='Location Name is required!' @bind-Value='@currlocation.Name' Label='Location Name' />
+            </MudItem>
+            <MudItem xs='8'>
+                <MudCheckBox @bind-Checked='@currlocation.IsActive' Color="Color.Success" Label='Active' />
+            </MudItem>
+        </MudGrid>
+      </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant='Variant.Text'>Cancel</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="Submit">@ButtonText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code{
+    [CascadingParameter] MudDialogInstance MudDialog {get; set;}
+    [Parameter] public string ContentText { get; set; }
+    [Parameter] public Color Color { get; set; }
+    [Parameter] public string ButtonText { get; set; }
+    [Parameter] public LocationModel currlocation {get;set;} = new LocationModel();
+
+    bool notValid;
+    private bool isDataFetch;
+
+
+
+    async void Submit()
+    {
+     
+        if (!string.IsNullOrWhiteSpace(currlocation.Name))
+        {
+          if (currlocation.Id == 0)
+          {
+              await locationService.AddLocationName(currlocation, GlobalClass.token);
+              ShowAlert("Location Added", Variant.Filled, Severity.Success);
+          }
+          else
+          {
+              await locationService.UpdateLocationName(currlocation, GlobalClass.token);
+              ShowAlert("Location Updated", Variant.Filled, Severity.Success);
+          }
+        MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+          notValid = true;
+        } 
+    }
+
+    void Cancel()
+    {
+        MudDialog.Cancel();
+        Extensions.ShowAlert("Cancel", Variant.Filled, Snackbar, Severity.Error);
+    }
+
+    void ShowAlert(string message, Variant variant, Severity severity)
+    {
+        Extensions.ShowAlert("Success", Variant.Filled, Snackbar, Severity.Success);
+    }
+}

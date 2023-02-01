@@ -1,0 +1,169 @@
+@inject IHolidayService holidayService
+@inject ILocationService locationService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<MudDialog>
+    <DialogContent>
+        @if(dataFetch)
+        {
+            <MudGrid>
+                <MudItem xs="6">
+                     <MudTextField @bind-Value="@currentHoliday.Name" Label="Holiday" Required="true" RequiredError="This field cannot be empty."></MudTextField>
+
+                </MudItem>
+                <MudItem xs="6">
+                     <MudSelect  Class='selectparent-75 fa-icon-center' T="Enums.HolidayType" FullWidth="true" Label="Holiday Type" @bind-value="@currentHoliday.Type" AnchorOrigin="Origin.CenterCenter" Required="true" RequiredError="This field cannot be empty.">
+                    @foreach (Enums.HolidayType holidayItem in Enum.GetValues(typeof(Enums.HolidayType)))
+                    {
+                        <MudSelectItem T="Enums.HolidayType" Value="@holidayItem">@Extensions.GetEnumDescription(holidayItem)</MudSelectItem>
+                        
+                    }
+                </MudSelect>
+                </MudItem>
+                <MudItem xs="6">
+                     <MudSelect Class='selectparent-75 fa-icon-center' Label="Location"
+                    MultiSelectionTextFunc='@(new Func<List<string>, string>(SelectedLocation))' @bind-SelectedValues='hasLocations' 
+                    @bind-Value="currentLocation" Dense="true" SelectAll="true" SelectAllText="Select all locations" MultiSelection="true" Required>
+                    @foreach (var item in locationList)
+                    {
+                        <MudSelectItem Value="@item">@item.Name</MudSelectItem>
+                    }
+                </MudSelect>
+                </MudItem>
+                <MudItem xs="6">
+                    <MudDatePicker PickerVariant="PickerVariant.Dialog" Label="Date" @bind-Date="@date" DisableToolbar="true"/>
+                </MudItem>
+            </MudGrid>
+         }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant='Variant.Text'>Cancel</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="Submit">@ButtonText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code{
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = new MudDialogInstance();
+    [Parameter] public string ContentText { get; set; } = String.Empty;
+    [Parameter] public Color Color { get; set; }
+    [Parameter] public string ButtonText { get; set; } = String.Empty;
+    [Parameter] public HolidayModel currentHoliday { get; set; } = new HolidayModel(); 
+
+    public List<HolidayModel> holidayList = new List<HolidayModel>();
+    public IEnumerable<LocationModel> locationList = new List<LocationModel>();
+    public string holidayName { get; set; } = String.Empty;
+    private string holidayType {get; set;} = String.Empty;
+    @* private Enums.HolidayType holidayTypes *@
+
+    private string _location { get; set; } = String.Empty;//bind-value
+    private Enums.HolidayType _holidayType { get; set; } // enums holiday type
+
+    private string locationName { get; set; } = String.Empty;
+    private IEnumerable<string> locationIds { get; set; } = new HashSet<string>() ;
+    DateTime? date = DateTime.Today;
+
+    
+    private bool dataFetch {get;set;} = false;
+    #region Get location from location service and display into combo box
+    //New Code
+    private IEnumerable<LocationModel> hasLocations {get; set;} = new HashSet<LocationModel>();
+    private LocationModel currentLocation = new LocationModel();
+
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        Task task = Task.WhenAll(GetLocations(), GetHolidays());
+        await task;
+        if (task.Status == TaskStatus.RanToCompletion)
+            dataFetch = true;
+        currentLocation = locationList.Where(x => x.Id == 2).FirstOrDefault();
+    
+            
+
+        
+    }
+
+    private async Task GetLocations()
+    {
+        var filterParameter = new FilterParameter();
+        filterParameter.IsActive = true;//filters active location
+        var _locationList = await locationService.GetLocations(filterParameter, GlobalClass.token);
+        locationList = _locationList;
+
+        @* Console.WriteLine(Newtonsoft.Json.JsonConvert.SerializeObject(locationList, Newtonsoft.Json.Formatting.Indented)); *@
+
+    }
+
+    private async Task GetHolidays(){
+        var _holidayList = await holidayService.GetHolidays(GlobalClass.currentYear, GlobalClass.token);
+        holidayList = _holidayList;
+    }
+    #endregion
+
+    #region Submit, Add holiday based on model, mapping bind value to addHoliday
+    async void Submit()
+    {
+        MapProperties();
+        if(ValidateEntries())
+        {
+            if(currentHoliday.Id == 0)
+            {
+                await holidayService.AddHoliday(currentHoliday, GlobalClass.token);
+                ShowAlert("Holiday Added", Variant.Filled, Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+                
+            }
+            else
+            {
+                
+                await holidayService.UpdateHolidayById(currentHoliday, GlobalClass.token);
+                ShowAlert("Holiday Updated", Variant.Filled, Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+        }
+        else
+        {
+            Console.WriteLine("Incomplete fields.");
+        }
+    }
+    #endregion
+    void Cancel()
+    {
+        MudDialog.Cancel();
+        Extensions.ShowAlert("Cancel", Variant.Filled, Snackbar, Severity.Error);
+    }
+
+    void ShowAlert(string message, Variant variant, Severity severity)
+    {
+        Extensions.ShowAlert("Success", Variant.Filled, Snackbar,Severity.Success);
+    }
+private string SelectedLocation(List<string> selectedStatus)
+  {
+      var location = "";
+      foreach (var item in hasLocations)
+      {
+        location = string.Join(", ", hasLocations.Select(x => x.Name));      
+      }
+      return $"{location}";
+  }
+
+  private void MapProperties()
+  {
+    currentHoliday.SelectedDate = date;
+    currentHoliday.Locations = hasLocations.Select(x => x.Id).ToList();
+    currentHoliday.IsActive = true;
+
+  }
+
+  private bool ValidateEntries(){
+    if (currentHoliday.Locations == null)
+        return false;
+    if (string.IsNullOrWhiteSpace(currentHoliday.Name))
+        return false;
+    return true;
+
+    
+  }
+}

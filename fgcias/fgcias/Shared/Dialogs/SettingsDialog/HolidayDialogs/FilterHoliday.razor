@@ -1,0 +1,49 @@
+@inject IHolidayService holidayService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+<MudDialog>
+    <DialogContent>
+       @if (dataFetch)
+       {
+            <MudDatePicker  PickerVariant="PickerVariant.Dialog" OpenTo="OpenTo.Year" @bind-Date="Year" FixMonth="@DateTime.Today.Month" FixDay="@DateTime.Today.Day" DateFormat="yyyy" DisableToolbar="true"/>
+       }
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel">Cancel</MudButton>
+        <MudButton Color="Color.Primary" OnClick="Submit">Ok</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = new MudDialogInstance();
+    
+    private bool dataFetch { get; set; }
+
+    private DateTime? Year = DateTime.Now;
+
+    private void ConvertToLong()
+    {
+        GlobalClass.currentYear = Year.Value.Date.Year;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        dataFetch=true;
+    }
+
+    private async Task GetHolidays()
+    {
+        ConvertToLong();
+        GlobalClassList.globalHolidayList = await holidayService.GetHolidays(GlobalClass.currentYear, GlobalClass.token);
+    }
+    
+
+    private async Task Submit()
+    {
+        await GetHolidays();
+        MudDialog.Close(DialogResult.Ok(true));
+    }
+    void Cancel() => MudDialog.Cancel();
+}
+
+

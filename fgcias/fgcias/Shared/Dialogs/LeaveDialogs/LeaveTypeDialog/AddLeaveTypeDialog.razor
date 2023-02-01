@@ -1,0 +1,79 @@
+@inject ILeaveTypeService leaveTypeService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+
+<MudDialog>
+    <TitleContent>
+      <MudIcon Icon="@Icons.Filled.Wysiwyg" Size='Size.Large'/>
+      <MudText Typo='Typo.h6'>
+          @ContentText
+      </MudText>
+    </TitleContent>
+    <DialogContent>
+      <MudForm >
+        <MudGrid>
+            <MudItem xs='6'>
+                <MudTextField Error='notValid' Required='true' RequiredError='Leave Type Name is required!' @bind-Value='@currLeaveType.Name' Label='Name' />
+            </MudItem>
+            <MudItem xs='12'>
+                <MudTextField Error='notValid' Lines="5" Required='true' RequiredError='Leave Type Description is required!' @bind-Value='@currLeaveType.Description' Label='Description' />
+            </MudItem>
+            <MudItem xs='8'>
+                <MudCheckBox @bind-Checked='@currLeaveType.IsActive' Color="Color.Success" Label='Active' />
+            </MudItem>
+        </MudGrid>
+      </MudForm>
+    </DialogContent>
+    <DialogActions>
+        <MudButton OnClick="Cancel" Variant='Variant.Text'>Cancel</MudButton>
+        <MudButton Color="Color.Success" Variant="Variant.Filled" OnClick="Submit">@ButtonText</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code{
+    [CascadingParameter] MudDialogInstance MudDialog {get; set;}
+    [Parameter] public string ContentText { get; set; }
+    [Parameter] public Color Color { get; set; }
+    [Parameter] public string ButtonText { get; set; }
+    [Parameter] public LeaveTypesModel currLeaveType {get;set;} = new LeaveTypesModel();
+
+    bool notValid;
+    private bool isDataFetch;
+
+
+
+    async void Submit()
+    {
+     
+        if (!string.IsNullOrWhiteSpace(currLeaveType.Name))
+        {
+          if (currLeaveType.Id == 0)
+          {
+              await leaveTypeService.AddleaveType(currLeaveType, GlobalClass.token);
+              ShowAlert("Leave Type Added", Variant.Filled, Severity.Success);
+          }
+          else
+          {
+              await leaveTypeService.UpdateleaveType(currLeaveType, GlobalClass.token);
+              ShowAlert("Leave Type Updated", Variant.Filled, Severity.Success);
+          }
+        MudDialog.Close(DialogResult.Ok(true));
+        }
+        else
+        {
+          notValid = true;
+        } 
+    }
+
+    void Cancel()
+    {
+        MudDialog.Cancel();
+        Extensions.ShowAlert("Cancel", Variant.Filled, Snackbar, Severity.Error);
+    }
+
+    void ShowAlert(string message, Variant variant, Severity severity)
+    {
+        Extensions.ShowAlert("Success", Variant.Filled, Snackbar, Severity.Success);
+    }
+}

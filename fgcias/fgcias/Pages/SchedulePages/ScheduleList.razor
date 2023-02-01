@@ -1,0 +1,113 @@
+@page "/schedule/schedules"
+@inject IScheduleService scheduleService
+@inject ILocationService locationService
+@inject IDialogService dialogService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<MudPaper Class="container d-flex flex-column" Elevation="0">
+    <div class="d-flex align-baseline">
+        <h1>Attendance Schedule</h1>
+    </div>
+    <div class="d-flex align-center pa-6 gap-2">
+        <div class='width300px'>
+            <MudTextField @bind-Value="SearchLocation" Variant="Variant.Text" Placeholder="Find Location" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium"  Margin='Margin.Dense' />
+        </div>
+        <MudSpacer />
+        <MudButton Variant="Variant.Text" DisableElevation="true">
+            <MudIcon Icon="@Icons.Filled.Tune" />
+            Filter
+        </MudButton>
+        <MudMenu StartIcon="@Icons.Filled.MoreVert" Label="More" AnchorOrigin="Origin.BottomRight">
+            <MudMenuItem Href="/schedule/new">
+                <div class="d-flex">
+                    <MudIcon Icon="@Icons.Filled.AddCircle" />
+                    <MudText Class="ml-2" Typo="Typo.body1">New Schedule</MudText>
+                </div>
+            </MudMenuItem>
+        </MudMenu>
+    </div> 
+    <div>
+        @if (dataFetch)
+        {
+            <MudTable Class="margin-left-config" Items="GlobalClassList.globalScheduleList" Elevation=1 FixedHeader FixedFooter Dense Height="calc(100vh - 300px)">
+                <HeaderContent>
+                    <MudTh>Name</MudTh>
+                    <MudTh>Location</MudTh>
+                    <MudTh>Time-in</MudTh>
+                    <MudTh>Time-out</MudTh>
+                    <MudTh>Time-in</MudTh>
+                    <MudTh>Time-out</MudTh>
+                    <MudTh>Actions</MudTh>
+                </HeaderContent>
+                <RowTemplate>
+                 @* <MudTd DataLabel="No">@GetRowNumber(context)</MudTd> *@
+                    <MudTd DataLabel="Name">@context.Name</MudTd>
+                    <MudTd DataLabel="Location">@context.LocationName</MudTd>
+                    <MudTd DataLabel="TimeInAm">@context.TimeInAm</MudTd>
+                    <MudTd DataLabel="TimeOutAm">@context.TimeOutAm</MudTd>
+                    <MudTd DataLabel="TimeInPm">@context.TimeInPm</MudTd>
+                    <MudTd DataLabel="TimeOutPm">@context.TimeOutPm</MudTd>
+                    <MudTd DataLabel="Actions">
+                        <MudMenu Icon="@Icons.Filled.MoreVert" Direction="Direction.End" Dense="true">
+                             <MudMenuItem>
+                                <div class="d-flex">
+                                    <MudIcon Icon="@Icons.Filled.Edit" />
+                                    <MudText Class="ml-2" Typo="Typo.body1">Edit Holiday</MudText>
+                                 </div>
+                              </MudMenuItem>
+                        </MudMenu>
+                    </MudTd>
+                </RowTemplate>
+                <NoRecordsContent>
+                    <MudText>No matching records found</MudText>
+                </NoRecordsContent>
+                <LoadingContent>
+                    <MudText>Loading...</MudText>
+                </LoadingContent>
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent> 
+                </MudTable> 
+        }
+    </div>
+</MudPaper>
+
+
+@code
+{
+    public string SearchLocation { get; set; } = String.Empty;
+    public bool dataFetch = false;
+    public bool activeSchedule { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        Task task = Task.WhenAll(GetSchedules());
+        await task;
+        if(task.Status == TaskStatus.RanToCompletion)
+            dataFetch = true;
+    }
+
+    private async Task GetSchedules()
+    {
+        activeSchedule = true;
+        var _scheduleList  = await scheduleService.GetSchedules(activeSchedule, GlobalClass.token);
+        foreach(var scheduleItem in _scheduleList)
+        {
+            
+            var _location = await locationService.GetLocationById(scheduleItem.Location, GlobalClass.token);
+            scheduleItem.LocationList.Add( _location ?? new LocationModel());
+            scheduleItem.LocationName = string.Join(", ", scheduleItem.LocationList.Select(x => x.Name));
+        }
+        GlobalClassList.globalScheduleList = _scheduleList;
+
+
+    }
+
+
+
+}
+
+
+
+
